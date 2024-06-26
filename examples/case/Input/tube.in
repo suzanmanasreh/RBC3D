@@ -7,9 +7,9 @@
 1.                      ! refRad
 .false.                 ! Deflate
 
-0.0     !
-0.0     !
-0.0     !
+0.0     ! pGradTar(1)
+0.0     ! pGradTar(2)
+0.0     ! pGradTar(3)
 
 10000                   ! Nt
 0.0014                  ! Ts
