@@ -12,14 +12,6 @@ tube
 libcommon.a
 .vscode
 field
-packages
-traction
-test
-tes17
-pinv
-qf1d
 packages*
-testcases
-mycases
-sample_files/sample_walls/my_meshes
+traction
 build

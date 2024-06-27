@@ -28,18 +28,24 @@ This codebase solves the boundary integral form of the Stokes equations via an a
 To install on PACE Phoenix, you need to salloc a node to make sure srun is available and then run this in the RBC3D root directory: 
 
 ```shell
+ml gcc/12.1.0-qgxpzk mvapich2/2.3.7-733lcv python/3.9.12-rkxvr6 netcdf-fortran cmake
+./rbc.sh install-phoenix
+```
+
+Note that if the `gcc`, `mvapich2`, `mkl`, and `fftw` modules work on your Phoenix account, you should use this installer script for a faster build.
+```shell
 ml gcc mvapich2 mkl python/3.9.12-rkxvr6 netcdf-fortran fftw cmake
-bash rbc.sh install
+./rbc.sh install
 ```
 
 Or if you're on COC-ICE, you just need to load different modules to run the installer script.
 
 ```shell
 ml gcc/12.3.0 mvapich2/2.3.7-1 intel-oneapi-mkl/2023.1.0 python/3.10.10 netcdf-fortran/4.6.0-mva2-hdf5-1.14 fftw/3.3.10-mva2 cmake
-bash rbc.sh install
+./rbc.sh install
 ```
 
-Before you can run cmake, you must add these to your `~/.bashrc`. If you didn't place `RBC3D` in your `$HOME` directory. Then replace, it with where you placed `RBC3D`.
+Before you can run cmake, you must set these environment variables. You can place them in your `~/.bashrc`. If you didn't place `RBC3D` in your `$HOME` directory, then replace it with where you placed `RBC3D`.
 ```shell
 export PETSC_DIR=$HOME/RBC3D/packages/petsc-3.19.6
 export PETSC_ARCH=arch-linux-c-opt
@@ -50,13 +56,15 @@ Then to execute and run a case, you can:
 mkdir build
 cd build
 cmake ..
+make case # or just `make` to make common and all the cases
 cd case
-make case
 srun -n 1 ./initcond
 srun ./tube
 ```
 
-On other supercomputing clusters, it should be easy to replace the module loads with the modules available on your system and make sure modules are setting appropriate environment variables via the `module show` command. If one of these isn't available, you can follow the manual build instructions [available here](https://github.com/comp-physics/RBC3D/blob/master/install/readme.md).
+This will generate output files in `build/case/D`. To keep output files in `examples/case/D`, you can `cd examples/case` and `srun ../../build/case/initcond` and same for tube.
+
+On other supercomputing clusters, it should be easy to replace the module loads with the modules available on your system. If one of these isn't available, you can follow the manual build instructions [available here](https://github.com/comp-physics/RBC3D/blob/master/install/readme.md).
 
 ### Papers that use RBC3D
 
