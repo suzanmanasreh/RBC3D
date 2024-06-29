@@ -120,18 +120,18 @@ contains
         rbc%ES = 12.4
         rbc%ED = 200.
         rbc%EB = 6.69D-2
-      ! Mechanical properties of leukocytes
-      ! Calculated according to section 6 of reference paper with WBC radius of 1.4 sim units
-      ! and Es* scaled by 10^2
-      ! Reference:
-      !   Zhao, H., Isfahani, A. H., Olson, L. N., & Freund, J. B. (2010).
-      !   A spectral boundary integral method for flowing blood cells.
-      !   Journal of Computational Physics, 229(10), 3726-3744.
+        ! Mechanical properties of leukocytes
+        ! Calculated according to section 6 of reference paper with WBC radius of 1.4 sim units
+        ! and Es* scaled by 10^2
+        ! Reference:
+        !   Zhao, H., Isfahani, A. H., Olson, L. N., & Freund, J. B. (2010).
+        !   A spectral boundary integral method for flowing blood cells.
+        !   Journal of Computational Physics, 229(10), 3726-3744.
       case (2)
         rbc%ES = 887
         rbc%ED = 200.
         rbc%EB = 2.44D-2
-      ! Mechanical properties of spherocytes
+        ! Mechanical properties of spherocytes
       case (3)
         rbc%ES = 10.*50
         rbc%ED = 50.

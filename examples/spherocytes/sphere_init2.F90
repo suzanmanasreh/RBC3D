@@ -37,7 +37,7 @@ program randomized_cell_gen
   !hematocrit = 4 * nrbc / (3 * tube_radius^2 * tube_length)
   nrbcMax = ((3*(tubelen*tuber**2*hematocrit))/4)
 
-  numSpheres = FLOOR(nrbcMax * .1)
+  numSpheres = FLOOR(nrbcMax*.1)
 
   if (rootWorld) then
     write (*, *) "Num RBCs in simulation is ", nrbcMax
