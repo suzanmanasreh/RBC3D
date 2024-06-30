@@ -129,7 +129,7 @@ foreach (example ${examples_list})
     endif()
 endforeach()
 
-cmake_print_variables(LAPACK_LIBRARIES)
+# cmake_print_variables(LAPACK_LIBRARIES)
 
 foreach (casedir ${dirlist})
 
