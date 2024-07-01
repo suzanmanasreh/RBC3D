@@ -21,7 +21,7 @@ set(USE_MKL OFF)
 
 if (DEFINED ENV{MKLROOT})
     set(USE_MKL ON)
-    message("Using MKL lapack because MKLROOT=$ENV{MKLROOT}")
+    cmake_print_variables(MKL)
     # use mkl implementation of lapack
     set(BLA_VENDOR Intel10_64lp)
 endif()

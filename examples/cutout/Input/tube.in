@@ -3,7 +3,7 @@
 8                       ! PBspln_Ewld
 
 3                       ! nCellTypes
-1 1 1                   ! viscRat -- for RBCS, approx 5, for Sickles, approximated as 7 from https://doi.org/10.1016/0167-4889(90)90025-9
+1 1 1                   ! viscRat
 1. 1. 1.                ! refRad
 .false.                 ! Deflate
 

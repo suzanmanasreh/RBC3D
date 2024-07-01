@@ -12,8 +12,8 @@ program randomized_cell_gen
   integer, parameter :: ranseed = 112
 
   !initial condition setup parameters
-  real(WP), parameter :: hematocrit = 0.1
-  real(WP) :: tuber = 4
+  real(WP), parameter :: hcrit = 0.20
+  real(WP) :: tuber = 3
   real(WP), parameter :: tubelen = 20
 
   integer :: nrbcMax ! how many cells
@@ -27,46 +27,40 @@ program randomized_cell_gen
   real(WP) :: clockBgn, clockEnd
   real(WP) :: offset(3)
   integer :: nodeNum, numNodes
+  real(WP) :: radEqv = 1.
 
   call InitMPI
   call MPI_Comm_Rank(MPI_COMM_WORLD, nodeNum, ierr)
   call MPI_Comm_Size(MPI_COMM_WORLD, numNodes, ierr)
   nodeNum = nodeNum + 1
 
-  !calculate number of cells for the defined hematocrit, assuming all blood cells are healthy RBCs for volume
-  !hematocrit = 4 * nrbc / (3 * tube_radius^2 * tube_length)
-  nrbcMax = ((3*(tubelen*tuber**2*hematocrit))/4)
+  ! calculate number of cells for the defined hematocrit, assuming all blood cells are healthy RBCs for volume
+  ! hematocrit = 4 * nrbc / (3 * tube_radius^2 * tube_length)
+  nrbcMax = ((3*(tubelen*tuber**2*hcrit))/4)
 
   if (rootWorld) write (*, *) "Num RBCs in simulation is ", nrbcMax
 
   !set other initialization params
-  vBkg(1:2) = 0.; vBkg(3) = 8.
+  vBkg(1:2) = 0.; vBkg(3) = 10.
   Nt = 0; time = 0.
-
-  if (rootWorld) print *, "1"
 
   !Create wall
   nwall = 1
   allocate (walls(nwall))
-  if (rootWorld) print *, "2"
   wall => walls(1)
-  if (rootWorld) print *, "3"
   call ReadWallMesh('Input/cutout.e', wall)
-  if (rootWorld) print *, "4"
   wall%f = 0.
 
   if (rootWorld) write (*, *) walls(1)%nvert, walls(2)%nvert
   actlen = tubelen
-  if (rootWorld) print *, "5"
 
   !recenter walls to be strictly positive
   call recenterWalls
-  if (rootWorld) print *, "6"
 
   !set periodic boundary box based on tube shape
   Lb(1) = maxval(wall%x(:, 1)) + 0.5
   Lb(2) = maxval(wall%x(:, 2)) + 0.5
-  Lb(3) = tubelen
+  Lb(3) = 20
 
   !Write Walls Out to Wall TecPlot File
   write (fn, FMT=fn_FMT) 'D/', 'wall', 0, '.dat'
@@ -78,6 +72,7 @@ program randomized_cell_gen
 
   do i = 1, nrbcMax
     if (rootWorld) write (*, *) "Adding Cell #", nrbc + 1
+
     clockBgn = MPI_Wtime()
     call place_cell(1)
     clockEnd = MPI_Wtime()
@@ -85,11 +80,12 @@ program randomized_cell_gen
     nrbc = nrbc + 1
     if (rootWorld) write (*, *) "Cell #", nrbc, " Placed; Time Cost = ", clockEnd - clockBgn
 
-    !Write Cells Out to Cell TecPlot File
+    ! Write Cells Out to Cell TecPlot File
     if (modulo(i, 10) .eq. 0) then
       write (fn, FMT=fn_FMT) 'D/', 'x', 0, '.dat'
       call WriteManyRBCs(fn, nrbc, rbcs)
-      !Write restart blob
+
+      ! Write restart blob
       write (fn, FMT=fn_FMT) 'D/', 'restart', 0, '.dat'
       call WriteRestart(fn, Nt0, time)
       fn = 'D/restart.LATEST.dat'
@@ -99,7 +95,7 @@ program randomized_cell_gen
 
   write (fn, FMT=fn_FMT) 'D/', 'x', 0, '.dat'
   call WriteManyRBCs(fn, nrbc, rbcs)
-  !Write restart blob
+  ! Write restart blob
   write (fn, FMT=fn_FMT) 'D/', 'restart', 0, '.dat'
   call WriteRestart(fn, Nt0, time)
   fn = 'D/restart.LATEST.dat'
@@ -112,7 +108,7 @@ program randomized_cell_gen
 
 contains
 
-!offset everything to be positive
+! offset everything to be positive
   subroutine recenterWalls
     integer :: i, ii
     type(t_wall), pointer :: wall
@@ -124,10 +120,12 @@ contains
     offset(2) = -1*minval(wall%x(:, 2))
     offset(3) = -1*minval(wall%x(:, 3))
 
-    !shift wall
-    do ii = 1, 3
-      wall => walls(1)
-      wall%x(:, ii) = wall%x(:, ii) + offset(ii)
+    ! shift all walls
+    do iwall = 1, nwall
+      wall => walls(iwall)
+      do ii = 1, 3
+        wall%x(:, ii) = wall%x(:, ii) + offset(ii)
+      end do
     end do
 
   end subroutine recenterWalls
@@ -136,7 +134,7 @@ contains
     real(WP) :: pt(3)
 
     type(t_wall), pointer :: wall
-    real(WP) :: rad, len, maxN, minN
+    real(WP) :: rad = 3., len, maxN, minN
     real(WP) :: threshold
     integer :: i
 
@@ -146,7 +144,7 @@ contains
     maxN = -1E9
     minN = 1E9
 
-    !figure out the radius based on the location in the tube
+    ! figure out the radius based on the location in the tube
     do i = 1, wall%nvert
       if (abs(wall%x(i, 3) - len) .le. threshold) then
         maxN = maxval((/maxN, wall%x(i, 1), wall%x(i, 2)/))
@@ -155,6 +153,10 @@ contains
     end do
 
     rad = (maxN - minN)/2
+    if (rad .ge. 4) rad = 3.749
+    ! if (rootWorld) print *, "minN: ", minN, "maxN: ", maxN
+    ! rad = 3
+    if (rootWorld) print *, "rad: ", rad
 
     pt(2) = RandomNumber(ranseed)*2*PI
     pt(3) = sqrt(RandomNumber(ranseed))*(rad)
@@ -162,27 +164,9 @@ contains
     pt(2) = pt(3)*sin(pt(2)) + rad + minN
     pt(3) = len
 
-    !edge case for the web
-    wall => walls(2)
-    maxN = -1E9
-    minN = 1E9
-    threshold = 0.5
-    do i = 1, wall%nvert
-      if (abs(wall%x(i, 3) - len) .le. threshold) then
-        minN = min(minN, wall%x(i, 2))
-        maxN = max(maxN, wall%x(i, 2))
-      end if
-    end do
-
-    if (minN .le. pt(2) .and. pt(2) .le. maxN) then !.and. maxN .ge. pt(2)) then
-      ! if (rootWorld) write (*,*) "point is inside web"
-      pt = 0
-      call choose_point(pt)
-    end if
-
   end subroutine choose_point
 
-!find an open spot in the simulation to place a cell
+! find an open spot in the simulation to place a cell
   subroutine place_cell(celltype)
 
     type(t_Rbc) :: newcell
@@ -201,13 +185,14 @@ contains
     select case (celltype)
     case (1)
       call RBC_Create(newcell, nlat0)
-      call RBC_MakeBiconcave(newcell, 1.)
+      call RBC_MakeBiconcave(newcell, radEqv)
+      ! print *, "SELECT CASE"
     case (2)
       call RBC_Create(newcell, nlat0)
-      call RBC_MakeLeukocyte(newcell, 1.)
+      call RBC_MakeLeukocyte(newcell, radEqv)
     case (3)
       call RBC_Create(newcell, nlat0)
-      call RBC_MakeSphere(newcell, 1.)
+      call RBC_MakeSphere(newcell, radEqv)
     case default
       stop "bad cellcase"
     end select
@@ -224,13 +209,18 @@ contains
         newcell%x(:, :, ii) = newcell%x(:, :, ii) - tmp_xc(ii)
       end do
 
-      !randomly rotate cell
       call rotate_cell(newcell)
 
-      !randomly select a tmp_xc
-      call choose_point(tmp_xc)
+      ! randomly select a tmp_xc
+      ! call choose_point(tmp_xc)
+      tmp_xc(2) = RandomNumber(ranseed)*2*PI
+      tmp_xc(3) = sqrt(RandomNumber(ranseed))*(tuber)
+      ! shift by 3 + 1.5 to account for cylinder with rad 3 being centered 4.5 units away in x dir
+      tmp_xc(1) = tmp_xc(3)*cos(tmp_xc(2)) + 4.5
+      tmp_xc(2) = tmp_xc(3)*sin(tmp_xc(2)) + 3
+      tmp_xc(3) = RandomNumber(ranseed)*tubelen
 
-      !shift newcell by the xc
+      ! shift newcell by the xc
       do ii = 1, 3
         newcell%x(:, :, ii) = newcell%x(:, :, ii) + tmp_xc(ii)
       end do
@@ -252,7 +242,7 @@ contains
       call MPI_AllReduce(place_success_loc, place_success_glb, 1, MPI_Logical, MPI_LAND, MPI_COMM_WORLD, ierr)
       if (.not. place_success_glb) cycle
 
-      !if no wall collision, check if cell collides with other cells
+      ! if no wall collision, check if cell collides with other cells
       celli = 1
       do while (place_success_loc .and. celli .le. nrbc)
         cell => rbcs(celli)
@@ -265,11 +255,11 @@ contains
 
     end do !while not place_success
 
-    !the cell placement location was successful
+    ! the cell placement location was successful
     rbcs(nrbc + 1) = newcell
   end subroutine place_cell
 
-!helper for place cell, chooses a random orientation and rotates the cell
+! helper for place cell, chooses a random orientation and rotates the cell
   subroutine rotate_cell(cell)
     type(t_Rbc) :: cell
 
@@ -300,7 +290,7 @@ contains
 
   end subroutine rotate_cell
 
-!helper for place_cell, checks if cell1 intersects/collides with wall
+! helper for place_cell, checks if cell1 intersects/collides with wall
   logical function check_wall_collision(cell)
     type(t_Rbc) :: cell
 
@@ -327,7 +317,7 @@ contains
 
           sp = walls(i2)%x(j2, :)
 
-          if (NORM2(c1p - sp) .lt. threshold) then
+          if (norm2(c1p - sp) .lt. threshold) then
             check_wall_collision = .true.
             return
           end if
