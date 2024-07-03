@@ -186,7 +186,6 @@ contains
     case (1)
       call RBC_Create(newcell, nlat0)
       call RBC_MakeBiconcave(newcell, radEqv)
-      ! print *, "SELECT CASE"
     case (2)
       call RBC_Create(newcell, nlat0)
       call RBC_MakeLeukocyte(newcell, radEqv)
