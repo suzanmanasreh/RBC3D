@@ -37,7 +37,7 @@ program randomized_cell_gen
   ! calculate number of cells for the defined hematocrit, assuming all blood cells are healthy RBCs for volume
   ! hematocrit = 4 * nrbc / (3 * tube_radius^2 * tube_length)
   ! nrbcMax = ((3*(tubelen*tuber**2*hcrit))/4)
-  nrbcMax = 22
+  nrbcMax = 38
 
   if (rootWorld) write (*, *) "Num RBCs in simulation is ", nrbcMax
 
@@ -75,7 +75,7 @@ program randomized_cell_gen
     if (rootWorld) write (*, *) "Adding Cell #", nrbc + 1
 
     clockBgn = MPI_Wtime()
-    call place_cell(1)
+    call place_cell(1, i)
     clockEnd = MPI_Wtime()
 
     nrbc = nrbc + 1
@@ -195,7 +195,7 @@ contains
   end subroutine get_point
 
 ! find an open spot in the simulation to place a cell
-  subroutine place_cell(celltype)
+  subroutine place_cell(celltype, num)
 
     type(t_Rbc) :: newcell
     type(t_Rbc), pointer :: cell
@@ -205,7 +205,7 @@ contains
     integer :: nlat0
     logical :: place_success_loc, place_success_glb
 
-    integer :: celltype
+    integer :: celltype, num
     real(WP) :: sphere_center(3), sphere_rad, d = 100.
 
     nlat0 = 12
@@ -241,30 +241,28 @@ contains
 
       ! randomly select a tmp_xc
       ! call choose_point(tmp_xc)
-      sphere_center = (/4.5, 5., 9./)
-      sphere_rad = 4.5
-      ! call get_point(tmp_xc, sphere_center, sphere_rad)
-      do while (d .gt. sphere_rad*sphere_rad)
-        tmp_xc(1) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
-        tmp_xc(2) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
-        tmp_xc(3) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
-  
-        d = sum(tmp_xc*tmp_xc)
-        ! if (rootWorld) print *, "d: ", d, "tmp_xc: ", tmp_xc
-      end do
-      d = 100.
-      ! if (rootWorld) print *, "tmp_xc BEFORE: ", tmp_xc
-      tmp_xc = tmp_xc + sphere_center
-      ! if (rootWorld) print *, "tmp_xc AFTER: ", tmp_xc
-      ! tmp_xc(2) = RandomNumber(ranseed)*2*PI
-      ! tmp_xc(3) = sqrt(RandomNumber(ranseed))*(tuber)
-      ! ! shift by 3 + 1.5 to account for cylinder with rad 3 being centered 4.5 units away in x dir
-      ! tmp_xc(1) = tmp_xc(3)*cos(tmp_xc(2)) + 4.5
-      ! tmp_xc(2) = tmp_xc(3)*sin(tmp_xc(2)) + 3
-      ! tmp_xc(3) = RandomNumber(ranseed)*tubelen
+      if (num .le. 22) then
+        sphere_center = (/4.5, 5., 9./)
+        sphere_rad = 4.5
+        do while (d .gt. sphere_rad*sphere_rad)
+          tmp_xc(1) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
+          tmp_xc(2) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
+          tmp_xc(3) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
+    
+          d = sum(tmp_xc*tmp_xc)
+        end do
+        d = 100.
+        tmp_xc = tmp_xc + sphere_center
+      else
+        tmp_xc(2) = RandomNumber(ranseed)*2*PI
+        tmp_xc(3) = sqrt(RandomNumber(ranseed))*(tuber)
+        ! shift by 3 + 1.5 to account for cylinder with rad 3 being centered 4.5 units away in x dir
+        tmp_xc(1) = tmp_xc(3)*cos(tmp_xc(2)) + 4.5
+        tmp_xc(2) = tmp_xc(3)*sin(tmp_xc(2)) + 3
+        tmp_xc(3) = RandomNumber(ranseed)*tubelen
+      end if
 
       ! shift newcell by the xc
-      ! if (rootWorld) print *, "SHIFT NEWCELL"
       do ii = 1, 3
         newcell%x(:, :, ii) = newcell%x(:, :, ii) + tmp_xc(ii)
       end do
@@ -282,7 +280,6 @@ contains
       if (.not. place_success_glb) cycle
 
       !check if cell collides with wall
-      ! if (rootWorld) print *, "WALL COLLISION CHECK"
       place_success_loc = .not. check_wall_collision(newcell)
       place_success_glb = .true.
       call MPI_AllReduce(place_success_loc, place_success_glb, 1, MPI_Logical, MPI_LAND, MPI_COMM_WORLD, ierr)
@@ -291,7 +288,6 @@ contains
       ! if no wall collision, check if cell collides with other cells
       celli = 1
       do while (place_success_loc .and. celli .le. nrbc)
-        ! if (rootWorld) print *, "CELL COLLISION CHECK"
         cell => rbcs(celli)
         place_success_loc = .not. check_cell_collision(cell, newcell)
         celli = celli + 1
