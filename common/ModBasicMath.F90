@@ -454,6 +454,8 @@ contains
 
   end function RandomNumber
 
+  ! generate random number in normal distribution
+
 !**********************************************************************
 
 end module ModBasicMath

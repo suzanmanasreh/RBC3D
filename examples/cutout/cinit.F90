@@ -9,10 +9,10 @@ program randomized_cell_gen
   use ModIO
   use ModBasicMath
 
-  integer, parameter :: ranseed = 112
+  integer, parameter :: ranseed = 6532
 
   !initial condition setup parameters
-  real(WP), parameter :: hcrit = 0.20
+  real(WP), parameter :: hcrit = 0.05
   real(WP) :: tuber = 3
   real(WP), parameter :: tubelen = 20
 
@@ -36,7 +36,8 @@ program randomized_cell_gen
 
   ! calculate number of cells for the defined hematocrit, assuming all blood cells are healthy RBCs for volume
   ! hematocrit = 4 * nrbc / (3 * tube_radius^2 * tube_length)
-  nrbcMax = ((3*(tubelen*tuber**2*hcrit))/4)
+  ! nrbcMax = ((3*(tubelen*tuber**2*hcrit))/4)
+  nrbcMax = 22
 
   if (rootWorld) write (*, *) "Num RBCs in simulation is ", nrbcMax
 
@@ -60,7 +61,7 @@ program randomized_cell_gen
   !set periodic boundary box based on tube shape
   Lb(1) = maxval(wall%x(:, 1)) + 0.5
   Lb(2) = maxval(wall%x(:, 2)) + 0.5
-  Lb(3) = 20
+  Lb(3) = tubelen
 
   !Write Walls Out to Wall TecPlot File
   write (fn, FMT=fn_FMT) 'D/', 'wall', 0, '.dat'
@@ -153,18 +154,45 @@ contains
     end do
 
     rad = (maxN - minN)/2
-    if (rad .ge. 4) rad = 3.749
-    ! if (rootWorld) print *, "minN: ", minN, "maxN: ", maxN
     ! rad = 3
-    if (rootWorld) print *, "rad: ", rad
 
     pt(2) = RandomNumber(ranseed)*2*PI
     pt(3) = sqrt(RandomNumber(ranseed))*(rad)
-    pt(1) = pt(3)*cos(pt(2)) + rad + minN
-    pt(2) = pt(3)*sin(pt(2)) + rad + minN
+    pt(1) = pt(3)*cos(pt(2)) + rad + minN ! x
+    pt(2) = pt(3)*sin(pt(2)) + rad + minN ! y
     pt(3) = len
 
+    ! if (pt(1) )
+
   end subroutine choose_point
+
+! generate point inside sphere with center and radius
+  subroutine get_point(pt, center, rad)
+
+    real(WP) :: pt(3)
+    real(WP) :: center(3), rad
+    real(WP) :: d = 100., x, y, z, tmp_pt(3)
+    do while (d .gt. rad)
+      call random_number(x)
+      call random_number(y)
+      call random_number(z)
+      x = (x*rad*2) - rad
+      y = (y*rad*2) - rad
+      z = (z*rad*2) - rad
+      ! if (rootWorld) print *, "tmp_pt: ", tmp_pt
+
+      d = sum(tmp_pt*tmp_pt)
+      ! if (rootWorld) print *, "d: ", d, "tmp_pt: ", tmp_pt
+    end do
+    ! if (rootWorld) print *, "tmp_pt after: ", x, y, z
+
+    pt = tmp_pt
+    ! if (rootWorld) print *, "tmp_pt: ", tmp_pt
+    pt(1) = x + center(1)
+    pt(2) = y + center(2)
+    pt(3) = z + center(3)
+    ! if (rootWorld) print *, "pt after: ", pt
+  end subroutine get_point
 
 ! find an open spot in the simulation to place a cell
   subroutine place_cell(celltype)
@@ -178,6 +206,7 @@ contains
     logical :: place_success_loc, place_success_glb
 
     integer :: celltype
+    real(WP) :: sphere_center(3), sphere_rad, d = 100.
 
     nlat0 = 12
 
@@ -212,14 +241,30 @@ contains
 
       ! randomly select a tmp_xc
       ! call choose_point(tmp_xc)
-      tmp_xc(2) = RandomNumber(ranseed)*2*PI
-      tmp_xc(3) = sqrt(RandomNumber(ranseed))*(tuber)
-      ! shift by 3 + 1.5 to account for cylinder with rad 3 being centered 4.5 units away in x dir
-      tmp_xc(1) = tmp_xc(3)*cos(tmp_xc(2)) + 4.5
-      tmp_xc(2) = tmp_xc(3)*sin(tmp_xc(2)) + 3
-      tmp_xc(3) = RandomNumber(ranseed)*tubelen
+      sphere_center = (/4.5, 5., 9./)
+      sphere_rad = 4.5
+      ! call get_point(tmp_xc, sphere_center, sphere_rad)
+      do while (d .gt. sphere_rad*sphere_rad)
+        tmp_xc(1) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
+        tmp_xc(2) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
+        tmp_xc(3) = (RandomNumber(ranseed)*sphere_rad*2) - sphere_rad
+  
+        d = sum(tmp_xc*tmp_xc)
+        ! if (rootWorld) print *, "d: ", d, "tmp_xc: ", tmp_xc
+      end do
+      d = 100.
+      ! if (rootWorld) print *, "tmp_xc BEFORE: ", tmp_xc
+      tmp_xc = tmp_xc + sphere_center
+      ! if (rootWorld) print *, "tmp_xc AFTER: ", tmp_xc
+      ! tmp_xc(2) = RandomNumber(ranseed)*2*PI
+      ! tmp_xc(3) = sqrt(RandomNumber(ranseed))*(tuber)
+      ! ! shift by 3 + 1.5 to account for cylinder with rad 3 being centered 4.5 units away in x dir
+      ! tmp_xc(1) = tmp_xc(3)*cos(tmp_xc(2)) + 4.5
+      ! tmp_xc(2) = tmp_xc(3)*sin(tmp_xc(2)) + 3
+      ! tmp_xc(3) = RandomNumber(ranseed)*tubelen
 
       ! shift newcell by the xc
+      ! if (rootWorld) print *, "SHIFT NEWCELL"
       do ii = 1, 3
         newcell%x(:, :, ii) = newcell%x(:, :, ii) + tmp_xc(ii)
       end do
@@ -227,6 +272,7 @@ contains
       place_success_glb = .true.
       newcell%x(:, :, 1) = newcell%x(:, :, 1) - tuber
       newcell%x(:, :, 2) = newcell%x(:, :, 2) - tuber
+      ! if (rootWorld) print *, "TUBELEN CHECK"
       if (any(newcell%x(:, :, 3) .ge. tubelen .or. newcell%x(:, :, 3) .lt. 0)) then
         place_success_loc = .false.
         place_success_glb = .false.
@@ -236,6 +282,7 @@ contains
       if (.not. place_success_glb) cycle
 
       !check if cell collides with wall
+      ! if (rootWorld) print *, "WALL COLLISION CHECK"
       place_success_loc = .not. check_wall_collision(newcell)
       place_success_glb = .true.
       call MPI_AllReduce(place_success_loc, place_success_glb, 1, MPI_Logical, MPI_LAND, MPI_COMM_WORLD, ierr)
@@ -244,6 +291,7 @@ contains
       ! if no wall collision, check if cell collides with other cells
       celli = 1
       do while (place_success_loc .and. celli .le. nrbc)
+        ! if (rootWorld) print *, "CELL COLLISION CHECK"
         cell => rbcs(celli)
         place_success_loc = .not. check_cell_collision(cell, newcell)
         celli = celli + 1
@@ -252,7 +300,7 @@ contains
       place_success_glb = .true.
       call MPI_AllReduce(place_success_loc, place_success_glb, 1, MPI_Logical, MPI_LAND, MPI_COMM_WORLD, ierr)
 
-    end do !while not place_success
+    end do ! while not place_success
 
     ! the cell placement location was successful
     rbcs(nrbc + 1) = newcell
@@ -284,7 +332,8 @@ contains
     !rotate cell with rotmat
     !each point: x = Rx
     forall (i=1:cell%nlat, j=1:cell%nlon)
-      cell%x(i, j, :) = reshape(matmul(rotmat, cell%x(i, j, :)), (/3/))
+      ! reshpe is unnecessary?
+      cell%x(i, j, :) = matmul(rotmat, cell%x(i, j, :))
     end forall
 
   end subroutine rotate_cell
