@@ -37,12 +37,12 @@ program randomized_cell_gen
   ! calculate number of cells for the defined hematocrit, assuming all blood cells are healthy RBCs for volume
   ! hematocrit = 4 * nrbc / (3 * tube_radius^2 * tube_length)
   ! nrbcMax = ((3*(tubelen*tuber**2*hcrit))/4)
-  nrbcMax = 36
+  nrbcMax = 38
 
   if (rootWorld) write (*, *) "Num RBCs in simulation is ", nrbcMax
 
   !set other initialization params
-  vBkg(1:2) = 0.; vBkg(3) = 8.
+  vBkg(1:2) = 0.; vBkg(3) = 6.
   Nt = 0; time = 0.
 
   !Create wall
@@ -161,8 +161,6 @@ contains
     pt(1) = pt(3)*cos(pt(2)) + rad + minN ! x
     pt(2) = pt(3)*sin(pt(2)) + rad + minN ! y
     pt(3) = len
-
-    ! if (pt(1) )
 
   end subroutine choose_point
 
