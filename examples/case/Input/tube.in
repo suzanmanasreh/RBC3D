@@ -5,7 +5,7 @@
 1                       ! nCellTypes
 1                       ! viscRat
 1.                      ! refRad
-.false.                 ! Deflate
+.true.                  ! Deflate
 
 0.0     !
 0.0     !

@@ -18,14 +18,11 @@ program randomized_cell_gen
 
   integer :: nrbcMax ! how many cells
 
-  type(t_Rbc), pointer :: rbc
   type(t_Wall), pointer :: wall
   character(CHRLEN) :: fn
-  integer :: zmax
   integer :: i
-  real(WP) :: th, actlen
+  real(WP) :: actlen
   real(WP) :: clockBgn, clockEnd
-  real(WP) :: offset(3)
   integer :: nodeNum, numNodes
   real(WP) :: radEqv = 1.
 
@@ -42,7 +39,7 @@ program randomized_cell_gen
   if (rootWorld) write (*, *) "Num RBCs in simulation is ", nrbcMax
 
   !set other initialization params
-  vBkg(1:2) = 0.; vBkg(3) = 6.
+  vBkg(1:2) = 0.; vBkg(3) = 8.
   Nt = 0; time = 0.
 
   !Create wall
@@ -52,7 +49,7 @@ program randomized_cell_gen
   call ReadWallMesh('Input/cutout.e', wall)
   wall%f = 0.
 
-  if (rootWorld) write (*, *) walls(1)%nvert, walls(2)%nvert
+  if (rootWorld) write (*, *) walls(1)%nvert
   actlen = tubelen
 
   !recenter walls to be strictly positive
@@ -111,7 +108,7 @@ contains
 
 ! offset everything to be positive
   subroutine recenterWalls
-    integer :: i, ii
+    integer :: i
     type(t_wall), pointer :: wall
     real(WP) :: offset(3)
 
@@ -124,8 +121,8 @@ contains
     ! shift all walls
     do iwall = 1, nwall
       wall => walls(iwall)
-      do ii = 1, 3
-        wall%x(:, ii) = wall%x(:, ii) + offset(ii)
+      do i = 1, 3
+        wall%x(:, i) = wall%x(:, i) + offset(i)
       end do
     end do
 
@@ -305,7 +302,7 @@ contains
     type(t_Rbc) :: cell
 
     real(WP) :: v1, v2, vsq
-    real(WP) :: zv(3), rc(3), rotmat(3, 3)
+    real(WP) :: zv(3), rotmat(3, 3)
 
     integer :: i, j
 
