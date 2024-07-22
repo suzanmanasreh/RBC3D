@@ -32,10 +32,10 @@ brew install gcc mpich gfortran pkg-config wget cmake
 
 and then from your RBC3D root directory, set these environment variables in your `~/.zshrc` or `~/.bashrc`.
 
+
 ```shell
 rootdir=`pwd`
-export PETSC_DIR=$rootdir/packages/petsc-3.21.3
-export PETSC_ARCH=arch-darwin-c-opt
+echo -e "export PETSC_DIR=$rootdir/packages/petsc-3.21.3 \nexport PETSC_ARCH=arch-darwin-c-opt" >> ~/.bashrc
 ```
 
 Then to execute and run a case, you can:

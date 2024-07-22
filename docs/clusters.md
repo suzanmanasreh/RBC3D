@@ -38,12 +38,11 @@ module load gcc/12.3.0 mvapich2/2.3.7-1 netcdf-c hdf5/1.14.1-2-mva2 intel-oneapi
 
 ## Environment Variables
 
-Before you can run cmake, you must set these environment variables. You can place them in your `~/.bashrc`.
+Before you can run cmake, you must set `PETSC_DIR` and `PETSC_ARCH` environment variables. You can place them in your `~/.bashrc`. This path depends on where you placed RBC3D. To get the path to where you placed it you can run this from your RBC3D root directory:
 
 ```shell
 rootdir=`pwd`
-export PETSC_DIR=$rootdir/packages/petsc-3.21.3
-export PETSC_ARCH=arch-linux-c-opt
+echo -e "export PETSC_DIR=$rootdir/packages/petsc-3.21.3 \nexport PETSC_ARCH=arch-linux-c-opt" >> ~/.bashrc
 ```
 
 ## Running an Example Case
